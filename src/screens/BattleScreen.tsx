@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import {
-  View, View as SafeAreaView, Text, StyleSheet, Pressable,
+  View, View as SafeAreaView, Text, StyleSheet, Pressable, Image,
 } from 'react-native';
 import { useBattle } from '../game/battle/useBattle';
 import { useSaveStore } from '../store/saveStore';
 import type { BattleEndResult } from '../types';
 import { WAVE_BOUNDARY } from '../game/battle/BattleEngine';
 import WaveView from '../components/battle/WaveView';
+import DogSprite from '../components/DogSprite';
+
+const BATTLE_BG = require('../../assets/backgrounds/battle_arena.png');
 
 interface Props {
   onBattleEnd: (result: BattleEndResult) => void;
@@ -53,6 +56,7 @@ export default function BattleScreen({ onBattleEnd }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Image source={BATTLE_BG} style={styles.bgImage} resizeMode="cover" />
       {/* Top HUD */}
       <View style={styles.topHUD}>
         {/* Player Info */}
@@ -113,7 +117,11 @@ export default function BattleScreen({ onBattleEnd }: Props) {
         {/* Dogs */}
         <View style={styles.dogsRow}>
           <View style={[styles.dogSide, state.isHowlActive && styles.dogGlow]}>
-            <Text style={styles.dogFight}>{playerDog.emoji}</Text>
+            <DogSprite
+              dog={playerDog}
+              variant={state.isPlayerCharging ? 'bark' : state.isPlayerOverheated ? 'hit' : 'idle'}
+              size={90}
+            />
             {state.isPlayerCharging && (
               <Text style={styles.chargingIndicator}>⚡ {Math.round(state.playerChargeAmount * 100)}%</Text>
             )}
@@ -224,7 +232,8 @@ function SkillButton({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A1628' },
+  container: { flex: 1, backgroundColor: '#0A1628', overflow: 'hidden' },
+  bgImage: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '110%', opacity: 0.35 },
   topHUD: { flexDirection: 'row', padding: 8, gap: 4 },
   playerHUD: { flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center' },
   avatarBox: { alignItems: 'center' },

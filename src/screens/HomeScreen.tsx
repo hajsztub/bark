@@ -5,8 +5,10 @@ import {
 } from 'react-native';
 import { useSaveStore } from '../store/saveStore';
 import { getDog } from '../data/dogs';
+import DogSprite from '../components/DogSprite';
 
-const HOME_BG = require('../../assets/backgrounds/home_bg.png');
+const HOME_BG   = require('../../assets/backgrounds/home_bg.png');
+const LOGO_IMG  = require('../../assets/ui/logo.png');
 
 const { height: SCREEN_H } = Dimensions.get('window');
 // Clamp to phone-frame height on web
@@ -63,13 +65,7 @@ export default function HomeScreen({ onPlay, onDogs, onShop }: Props) {
 
         {/* ── Logo ── */}
         <View style={styles.logoRow}>
-          <View style={styles.logoBg}>
-            <Text style={styles.logoTop}>BARK</Text>
-            <Text style={styles.logoBattle}>BATTLE</Text>
-          </View>
-          <View style={styles.dogDuelBadge}>
-            <Text style={styles.dogDuelText}>🐾 DOG DUEL 🐾</Text>
-          </View>
+          <Image source={LOGO_IMG} style={styles.logoImg} resizeMode="contain" />
         </View>
 
         {/* ── Middle: left cards | dog | right cards ── */}
@@ -90,7 +86,10 @@ export default function HomeScreen({ onPlay, onDogs, onShop }: Props) {
 
           {/* Dog — fixed size box */}
           <View style={styles.dogBox}>
-            <Text style={styles.dogEmoji}>{dog?.emoji ?? '🐾'}</Text>
+            {dog
+              ? <DogSprite dog={dog} variant="idle" size={H * 0.28} />
+              : <Text style={styles.dogEmoji}>🐾</Text>
+            }
             <View style={styles.dogNameBadge}>
               <Text style={styles.dogNameText}>🐾 {dog?.name ?? 'Choose a dog'}</Text>
             </View>
@@ -189,28 +188,8 @@ const styles = StyleSheet.create({
   currencyText: { color: '#FFF', fontWeight: '700', fontSize: 12 },
 
   /* logo */
-  logoRow: { alignItems: 'center', paddingTop: 6, paddingBottom: 2 },
-  logoBg: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(4,10,24,0.55)', borderRadius: 14,
-    paddingHorizontal: 20, paddingVertical: 2,
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)',
-  },
-  logoTop: {
-    fontSize: 44, fontWeight: '900', color: '#FFD700', letterSpacing: 6,
-    textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6,
-  },
-  logoBattle: {
-    fontSize: 38, fontWeight: '900', color: '#4A9EFF', letterSpacing: 6, marginTop: -10,
-    textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6,
-  },
-  dogDuelBadge: {
-    backgroundColor: '#CC2200', borderRadius: 6,
-    paddingHorizontal: 18, paddingVertical: 4, marginTop: 4,
-    shadowColor: '#CC2200', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.8, shadowRadius: 6,
-    elevation: 5,
-  },
-  dogDuelText: { color: '#FFF', fontWeight: '800', fontSize: 13, letterSpacing: 2 },
+  logoRow: { alignItems: 'center', paddingTop: 4, paddingBottom: 2 },
+  logoImg: { width: 280, height: 90 },
 
   /* middle row */
   midRow: {

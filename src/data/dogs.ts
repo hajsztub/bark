@@ -1,11 +1,9 @@
 import type { Dog } from '../types';
 
-// When you have real art, drop PNG files into assets/dogs/ and uncomment the imports below.
-// Each dog needs: idle, bark, hit, victory, defeat variants (400×400 PNG, transparent bg).
-//
-// import samoyedIdle    from '../../assets/dogs/samoyed_idle.png';
-// import samoyedBark    from '../../assets/dogs/samoyed_bark.png';
-// import samoyedHit     from '../../assets/dogs/samoyed_hit.png';
+import samoyedIdle    from '../../assets/dogs/samoyed_idle.png';
+import samoyedBark    from '../../assets/dogs/samoyed_bark.png';
+import samoyedHit     from '../../assets/dogs/samoyed_hit.png';
+
 // import samoyedVictory from '../../assets/dogs/samoyed_victory.png';
 // import samoyedDefeat  from '../../assets/dogs/samoyed_defeat.png';
 //
@@ -33,7 +31,13 @@ export const DOGS: Dog[] = [
     fragmentsRequired: 0,
     emoji: '🐾',
     color: '#4A9EFF',
-    // images: { idle: samoyedIdle, bark: samoyedBark, hit: samoyedHit, victory: samoyedVictory, defeat: samoyedDefeat },
+    images: {
+      idle:    samoyedIdle,
+      bark:    samoyedBark,
+      hit:     samoyedHit,
+      victory: samoyedIdle,  // replace when samoyed_victory.png is ready
+      defeat:  samoyedHit,   // replace when samoyed_defeat.png is ready
+    },
   },
   {
     id: 'shiba',
