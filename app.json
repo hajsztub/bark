@@ -29,9 +29,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      "@shopify/react-native-skia",
-      "react-native-gesture-handler"
+      "expo-router"
     ]
   }
 }
