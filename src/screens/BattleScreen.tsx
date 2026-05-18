@@ -1,16 +1,14 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import {
   View, View as SafeAreaView, Text, StyleSheet, Pressable, Image,
 } from 'react-native';
 import { useBattle } from '../game/battle/useBattle';
 import { useSaveStore } from '../store/saveStore';
 import type { BattleEndResult } from '../types';
-import { WAVE_BOUNDARY } from '../game/battle/BattleEngine';
-import WaveView from '../components/battle/WaveView';
 import DogSprite from '../components/DogSprite';
 
 const BATTLE_BG = require('../../assets/backgrounds/battle_arena.png');
-const DOG_SIZE  = 155;
+const DOG_SIZE  = 190;
 
 interface Props {
   onBattleEnd: (result: BattleEndResult) => void;
@@ -18,8 +16,21 @@ interface Props {
 
 export default function BattleScreen({ onBattleEnd }: Props) {
   const { state, playerDog, bot, startBattle, tapBark, startCharge, updateCharge, releaseCharge, useSkill } = useBattle(onBattleEnd);
-
   const chargeInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Detect bot attacks: when wavePosition drops, bot pushed the wave
+  const prevWave = useRef(0);
+  const botAttackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isBotAttacking, setIsBotAttacking] = useState(false);
+
+  useEffect(() => {
+    if (state.wavePosition < prevWave.current - 1.5) {
+      setIsBotAttacking(true);
+      if (botAttackTimer.current) clearTimeout(botAttackTimer.current);
+      botAttackTimer.current = setTimeout(() => setIsBotAttacking(false), 700);
+    }
+    prevWave.current = state.wavePosition;
+  }, [state.wavePosition]);
 
   useEffect(() => { startBattle(); }, []);
 
@@ -30,7 +41,7 @@ export default function BattleScreen({ onBattleEnd }: Props) {
 
   const handleBarkPressOut = useCallback(() => {
     if (chargeInterval.current) { clearInterval(chargeInterval.current); chargeInterval.current = null; }
-    if (state.isPlayerCharging) { releaseCharge(); } else { tapBark(); }
+    if (state.isPlayerCharging) releaseCharge(); else tapBark();
   }, [state.isPlayerCharging, releaseCharge, tapBark]);
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
@@ -39,11 +50,14 @@ export default function BattleScreen({ onBattleEnd }: Props) {
   const botConfPct    = Math.ceil(state.botConfidence);
   const staminaPct    = (state.playerStamina / (playerDog.stats.stamina * 10)) * 100;
   const timeUrgent    = state.timeRemaining <= 10;
-
   const coins = useSaveStore(s => s.data.coins);
   const gems  = useSaveStore(s => s.data.gems);
+  const trophies = useSaveStore(s => s.data.trophies);
 
   const playerVariant = state.isPlayerCharging ? 'bark' : state.isPlayerOverheated ? 'hit' : 'idle';
+  const botVariant    = isBotAttacking ? 'bark' : 'idle';
+
+  const clashVisible  = state.isPlayerCharging || isBotAttacking;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -51,95 +65,106 @@ export default function BattleScreen({ onBattleEnd }: Props) {
       <Image source={BATTLE_BG} style={styles.bgImage} resizeMode="cover" />
       <View style={styles.bgOverlay} />
 
-      {/* ── Top HUD ── */}
+      {/* ── HUD row ── */}
       <View style={styles.topHUD}>
-        {/* Player */}
         <View style={styles.playerCard}>
           <View style={[styles.avatarRing, { borderColor: '#4A9EFF' }]}>
-            <DogSprite dog={playerDog} variant="idle" size={36} />
+            <DogSprite dog={playerDog} variant="idle" size={38} />
           </View>
-          <View style={styles.hudTexts}>
+          <View style={styles.hudMeta}>
             <Text style={styles.hudName} numberOfLines={1}>{playerDog.name}</Text>
-            <Text style={styles.hudTrophies}>🏆 {useSaveStore.getState().data.trophies}</Text>
+            <Text style={styles.hudTrophies}>🏆 {trophies}</Text>
           </View>
-          <View style={styles.hudBadge}><Text style={styles.hudBadgeText}>1P</Text></View>
+          <View style={styles.badge1P}><Text style={styles.badgeText}>1P</Text></View>
         </View>
 
-        {/* Timer */}
         <View style={styles.timerBox}>
           <Text style={styles.timeLabel}>TIME LEFT</Text>
           <Text style={[styles.timer, timeUrgent && styles.timerUrgent]}>{formatTime(state.timeRemaining)}</Text>
         </View>
 
-        {/* Bot */}
         <View style={[styles.playerCard, { flexDirection: 'row-reverse' }]}>
           <View style={[styles.avatarRing, { borderColor: '#FF4422' }]}>
-            <Text style={{ fontSize: 28 }}>🦊</Text>
+            <View style={{ transform: [{ scaleX: -1 }] }}>
+              <DogSprite dog={playerDog} variant="idle" size={38} />
+            </View>
           </View>
-          <View style={[styles.hudTexts, { alignItems: 'flex-end' }]}>
+          <View style={[styles.hudMeta, { alignItems: 'flex-end' }]}>
             <Text style={styles.hudName} numberOfLines={1}>{bot.name}</Text>
             <Text style={styles.hudTrophies}>🏆 {bot.trophies}</Text>
           </View>
-          <View style={[styles.hudBadge, { backgroundColor: '#FF4422' }]}>
-            <Text style={styles.hudBadgeText}>2P</Text>
-          </View>
+          <View style={styles.badge2P}><Text style={styles.badgeText}>2P</Text></View>
         </View>
       </View>
 
-      {/* ── Confidence bars ── */}
+      {/* ── Bark power bars ── */}
       <View style={styles.barsRow}>
-        <View style={styles.barWrap}>
+        <View style={styles.barSection}>
           <View style={styles.barTrack}>
-            <View style={[styles.barFill, { width: `${playerConfPct}%`, backgroundColor: '#4A9EFF' }]} />
+            <View style={[styles.barFill, { width: `${playerConfPct}%`, backgroundColor: '#2E7FCC' }]} />
+            <Text style={styles.barPct}>{playerConfPct}%</Text>
           </View>
-          <Text style={[styles.barLabel, { color: '#4A9EFF' }]}>{playerConfPct}%  BARK POWER</Text>
+          <Text style={[styles.barLabel, { color: '#4A9EFF' }]}>BARK POWER</Text>
         </View>
-        <View style={[styles.barWrap, { alignItems: 'flex-end' }]}>
-          <View style={styles.barTrack}>
-            <View style={[styles.barFill, { width: `${botConfPct}%`, backgroundColor: '#FF4422', alignSelf: 'flex-end' }]} />
+
+        <Text style={styles.vsLabel}>VS</Text>
+
+        <View style={[styles.barSection, { alignItems: 'flex-end' }]}>
+          <View style={[styles.barTrack, { transform: [{ scaleX: -1 }] }]}>
+            <View style={[styles.barFill, { width: `${botConfPct}%`, backgroundColor: '#BB2200' }]} />
+            <Text style={[styles.barPct, { transform: [{ scaleX: -1 }] }]}>{botConfPct}%</Text>
           </View>
-          <Text style={[styles.barLabel, { color: '#FF4422' }]}>BARK POWER  {botConfPct}%</Text>
+          <Text style={[styles.barLabel, { color: '#FF4422' }]}>BARK POWER</Text>
+        </View>
+      </View>
+
+      {/* ── Tug-of-war bar ── */}
+      <View style={styles.tugRow}>
+        <View style={styles.tugTrack}>
+          <View style={[styles.tugBlue, { flex: 50 + (state.wavePosition / 100) * 35 }]} />
+          <View style={[styles.tugRed,  { flex: 50 - (state.wavePosition / 100) * 35 }]} />
+          <View style={styles.tugDot} />
         </View>
       </View>
 
       {/* ── Arena ── */}
       <View style={styles.arena}>
-        <WaveView
-          wavePosition={state.wavePosition}
-          playerCharging={state.isPlayerCharging}
-          chargeAmount={state.playerChargeAmount}
-          playerColor={playerDog.color}
-        />
+        {/* Clash energy between dogs */}
+        {clashVisible && (
+          <View style={styles.clashZone} pointerEvents="none">
+            <View style={[styles.clashLine, { opacity: 0.5 + (state.isPlayerCharging ? state.playerChargeAmount * 0.5 : 0.3) }]} />
+          </View>
+        )}
 
-        {/* Dogs row */}
+        {/* WOOF bubble */}
+        {state.isPlayerCharging && (
+          <View style={styles.woofBubble}><Text style={styles.woofText}>WOOF!</Text></View>
+        )}
+        {/* WAF bubble */}
+        {isBotAttacking && (
+          <View style={styles.wafBubble}><Text style={styles.wafText}>WAF!</Text></View>
+        )}
+
+        {/* Dogs — edge to edge */}
         <View style={styles.dogsRow}>
-          {/* Player side */}
-          <View style={styles.dogSide}>
+          <View style={styles.dogLeft}>
             <DogSprite dog={playerDog} variant={playerVariant} size={DOG_SIZE} />
             {state.isPlayerOverheated && <Text style={styles.tiredText}>💨 TIRED</Text>}
           </View>
-
-          {/* VS */}
-          <View style={styles.vsCol}>
-            <Text style={styles.vsText}>VS</Text>
-          </View>
-
-          {/* Bot side — samoyed mirrored */}
-          <View style={[styles.dogSide, { alignItems: 'flex-end' }]}>
+          <View style={styles.dogRight}>
             <View style={{ transform: [{ scaleX: -1 }] }}>
-              <DogSprite dog={playerDog} variant="idle" size={DOG_SIZE} />
+              <DogSprite dog={playerDog} variant={botVariant} size={DOG_SIZE} />
             </View>
           </View>
         </View>
 
-        {/* Speech bubbles float over arena */}
-        {state.isPlayerCharging && (
-          <View style={styles.woofBubble}><Text style={styles.woofText}>WOOF!</Text></View>
-        )}
-        <View style={styles.wafBubble}><Text style={styles.wafText}>WAF!</Text></View>
+        {/* VS floats above dogs in center */}
+        <View style={styles.vsFloat} pointerEvents="none">
+          <Text style={styles.vsFloatText}>VS</Text>
+        </View>
       </View>
 
-      {/* ── Stamina bar ── */}
+      {/* ── Stamina ── */}
       <View style={styles.staminaRow}>
         <View style={styles.staminaTrack}>
           <View style={[styles.staminaFill, { width: `${staminaPct}%` }, staminaPct < 25 && styles.staminaLow]} />
@@ -149,12 +174,12 @@ export default function BattleScreen({ onBattleEnd }: Props) {
       {/* ── Controls ── */}
       <View style={styles.controls}>
         <View style={styles.skillsLeft}>
-          <SkillBtn label="HOWL" emoji="🎵" color="#4A9EFF" cooldown={state.skillCooldowns['HOWL']} max={10} active={state.isHowlActive} onPress={() => useSkill('HOWL')} />
-          <SkillBtn label="TREAT" emoji="🦴" color="#44BB44" cooldown={state.skillCooldowns['TREAT']} max={12} onPress={() => useSkill('TREAT')} />
+          <SkillBtn label="HOWL"  emoji="🎵" color="#4A9EFF" cooldown={state.skillCooldowns['HOWL']}  max={10} active={state.isHowlActive}   onPress={() => useSkill('HOWL')} />
+          <SkillBtn label="TREAT" emoji="🦴" color="#44BB44" cooldown={state.skillCooldowns['TREAT']} max={12}                                 onPress={() => useSkill('TREAT')} />
         </View>
 
         <Pressable
-          style={[styles.barkBtn, (state.isPlayerOverheated || !state.active) && styles.barkBtnOff]}
+          style={[styles.barkBtn, (state.isPlayerOverheated || !state.active) && styles.barkOff]}
           onPressIn={handleBarkPressIn}
           onPressOut={handleBarkPressOut}
           disabled={state.isPlayerOverheated || !state.active}
@@ -162,8 +187,8 @@ export default function BattleScreen({ onBattleEnd }: Props) {
           <View style={[
             styles.barkInner,
             state.isPlayerCharging && {
-              transform: [{ scale: 1 + state.playerChargeAmount * 0.12 }],
-              backgroundColor: `rgba(220, 40, 0, ${0.85 + state.playerChargeAmount * 0.15})`,
+              transform: [{ scale: 1 + state.playerChargeAmount * 0.1 }],
+              backgroundColor: `rgba(220,40,0,${0.9 + state.playerChargeAmount * 0.1})`,
             },
           ]}>
             <Text style={styles.barkPaw}>🐾</Text>
@@ -177,7 +202,7 @@ export default function BattleScreen({ onBattleEnd }: Props) {
         </View>
       </View>
 
-      {/* ── Currency bar ── */}
+      {/* ── Currency ── */}
       <View style={styles.currencyBar}>
         <Text style={styles.currencyText}>🪙 {coins.toLocaleString()}</Text>
         <Text style={styles.currencyText}>💎 {gems}</Text>
@@ -190,12 +215,11 @@ function SkillBtn({ label, emoji, color, cooldown, max, active, onPress }: {
   label: string; emoji: string; color: string;
   cooldown: number; max: number; active?: boolean; onPress: () => void;
 }) {
-  const ready = cooldown === 0;
   return (
     <Pressable onPress={onPress} style={[skillS.btn, { borderColor: color }, active && skillS.active]}>
       <Text style={skillS.emoji}>{emoji}</Text>
       <Text style={[skillS.label, { color }]}>{label}</Text>
-      {!ready && (
+      {cooldown > 0 && (
         <View style={skillS.overlay}>
           <Text style={skillS.cd}>{Math.ceil(cooldown)}</Text>
         </View>
@@ -206,123 +230,152 @@ function SkillBtn({ label, emoji, color, cooldown, max, active, onPress }: {
 
 const skillS = StyleSheet.create({
   btn: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(10,22,40,0.85)',
-    borderWidth: 2, alignItems: 'center', justifyContent: 'center',
-    position: 'relative', overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.5, shadowRadius: 4,
-    elevation: 4,
+    width: 66, height: 66, borderRadius: 33, backgroundColor: 'rgba(8,18,40,0.90)',
+    borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.6, shadowRadius: 4, elevation: 5,
   },
   active: { borderWidth: 3 },
   emoji: { fontSize: 22 },
   label: { fontSize: 9, fontWeight: '700', marginTop: 1 },
   overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', borderRadius: 32,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.68)', alignItems: 'center', justifyContent: 'center', borderRadius: 33,
   },
-  cd: { color: '#FFF', fontSize: 18, fontWeight: '900' },
+  cd: { color: '#FFF', fontSize: 20, fontWeight: '900' },
 });
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A1628', overflow: 'hidden' },
+  container: { flex: 1, backgroundColor: '#060E22', overflow: 'hidden' },
+  bgImage:   { ...StyleSheet.absoluteFillObject },
+  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(4,8,20,0.20)' },
 
-  bgImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(4,10,24,0.22)' },
-
-  // HUD
+  /* HUD */
   topHUD: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingTop: 8, paddingBottom: 4,
-    backgroundColor: 'rgba(6,14,34,0.88)',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)',
-    gap: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingTop: 8, paddingBottom: 6,
+    backgroundColor: 'rgba(6,14,34,0.90)',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   playerCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
   avatarRing: {
     width: 46, height: 46, borderRadius: 23, borderWidth: 2,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
-  hudTexts: { flex: 1 },
-  hudName: { color: '#FFF', fontWeight: '700', fontSize: 11 },
-  hudTrophies: { color: '#FFD700', fontSize: 10, fontWeight: '700' },
-  hudBadge: {
-    backgroundColor: '#4A9EFF', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2,
+  hudMeta:    { flex: 1 },
+  hudName:    { color: '#FFF', fontWeight: '800', fontSize: 11 },
+  hudTrophies:{ color: '#FFD700', fontSize: 10, fontWeight: '700' },
+  badge1P: { backgroundColor: '#2E7FCC', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  badge2P: { backgroundColor: '#BB2200', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  badgeText: { color: '#FFF', fontSize: 9, fontWeight: '900' },
+  timerBox: {
+    alignItems: 'center', minWidth: 74,
+    backgroundColor: 'rgba(10,20,50,0.95)', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 3,
+    borderWidth: 1, borderColor: 'rgba(74,158,255,0.3)',
   },
-  hudBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '800' },
-  timerBox: { alignItems: 'center', minWidth: 70, backgroundColor: 'rgba(10,22,50,0.9)', borderRadius: 10, padding: 4 },
-  timeLabel: { color: '#AAA', fontSize: 8, fontWeight: '700' },
-  timer: { color: '#FFF', fontSize: 22, fontWeight: '900' },
+  timeLabel:   { color: '#AAA', fontSize: 8, fontWeight: '700' },
+  timer:       { color: '#FFF', fontSize: 24, fontWeight: '900' },
   timerUrgent: { color: '#FF4422' },
 
-  // Bars
+  /* Bark power bars */
   barsRow: {
-    flexDirection: 'row', paddingHorizontal: 8, gap: 8, paddingBottom: 4,
-    backgroundColor: 'rgba(6,14,34,0.75)',
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingBottom: 3,
+    backgroundColor: 'rgba(6,14,34,0.82)', gap: 6,
   },
-  barWrap: { flex: 1 },
-  barTrack: { height: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 6, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 6 },
-  barLabel: { fontSize: 8, fontWeight: '700', marginTop: 2 },
+  barSection: { flex: 1 },
+  barTrack: {
+    height: 16, backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 8,
+    overflow: 'hidden', justifyContent: 'center',
+  },
+  barFill:  { position: 'absolute', top: 0, left: 0, bottom: 0, borderRadius: 8 },
+  barPct:   { color: '#FFF', fontSize: 10, fontWeight: '900', textAlign: 'center', zIndex: 1 },
+  barLabel: { fontSize: 8, fontWeight: '800', marginTop: 1 },
+  vsLabel:  {
+    color: '#FFD700', fontSize: 18, fontWeight: '900',
+    textShadowColor: '#AA7700', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2,
+  },
 
-  // Arena
+  /* Tug bar */
+  tugRow: { paddingHorizontal: 8, paddingBottom: 2, backgroundColor: 'rgba(6,14,34,0.6)' },
+  tugTrack: { height: 6, flexDirection: 'row', borderRadius: 3, overflow: 'hidden', position: 'relative' },
+  tugBlue: { backgroundColor: '#2E7FCC' },
+  tugRed:  { backgroundColor: '#BB2200' },
+  tugDot: {
+    position: 'absolute', top: -3, left: '50%', marginLeft: -5,
+    width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFD700',
+    shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 4, elevation: 4,
+  },
+
+  /* Arena */
   arena: { flex: 1, position: 'relative' },
-  dogsRow: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 0,
-  },
-  dogSide: { flex: 1, alignItems: 'flex-start', position: 'relative' },
-  vsCol: { width: 44, alignItems: 'center', paddingBottom: 30 },
-  vsText: { color: '#FFD700', fontSize: 22, fontWeight: '900', textShadowColor: '#000', textShadowRadius: 6 },
 
-  // Speech bubbles — absolute, float above dogs
+  clashZone: { position: 'absolute', top: '10%', bottom: '5%', left: '45%', right: '45%', alignItems: 'center' },
+  clashLine: { flex: 1, width: 6, borderRadius: 3, backgroundColor: '#FFD700',
+    shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 12, elevation: 8 },
+
+  /* Speech bubbles */
   woofBubble: {
-    position: 'absolute', bottom: DOG_SIZE - 10, left: 8,
-    backgroundColor: '#1166EE', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5,
-    shadowColor: '#4A9EFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 10,
-    elevation: 8, zIndex: 10,
+    position: 'absolute', bottom: DOG_SIZE + 10, left: 12,
+    backgroundColor: '#1166EE', borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 6,
+    shadowColor: '#4A9EFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 12, elevation: 9,
   },
-  woofText: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: 1 },
+  woofText: { color: '#FFF', fontSize: 20, fontWeight: '900', letterSpacing: 1 },
   wafBubble: {
-    position: 'absolute', bottom: DOG_SIZE - 10, right: 8,
-    backgroundColor: '#BB2200', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5,
-    shadowColor: '#FF4422', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 10,
-    elevation: 8, zIndex: 10,
+    position: 'absolute', bottom: DOG_SIZE + 10, right: 12,
+    backgroundColor: '#BB2200', borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 6,
+    shadowColor: '#FF4422', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 12, elevation: 9,
   },
-  wafText: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: 1 },
+  wafText: { color: '#FFF', fontSize: 20, fontWeight: '900', letterSpacing: 1 },
 
-  tiredText: { color: '#FF8800', fontWeight: '700', fontSize: 11 },
+  /* Dogs row — edge to edge */
+  dogsRow: {
+    position: 'absolute', bottom: 0, left: -8, right: -8,
+    flexDirection: 'row', alignItems: 'flex-end',
+  },
+  dogLeft:  { flex: 1, alignItems: 'flex-start' },
+  dogRight: { flex: 1, alignItems: 'flex-end' },
 
-  // Stamina
-  staminaRow: { paddingHorizontal: 40, paddingBottom: 4 },
-  staminaTrack: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
+  vsFloat: { position: 'absolute', bottom: DOG_SIZE * 0.2, left: 0, right: 0, alignItems: 'center' },
+  vsFloatText: {
+    color: '#FFD700', fontSize: 26, fontWeight: '900',
+    textShadowColor: '#000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8,
+  },
+
+  tiredText: { color: '#FF8800', fontWeight: '700', fontSize: 10, textAlign: 'center' },
+
+  /* Stamina */
+  staminaRow: { paddingHorizontal: 50, paddingBottom: 3 },
+  staminaTrack: { height: 5, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 3, overflow: 'hidden' },
   staminaFill: { height: '100%', backgroundColor: '#FFD700', borderRadius: 3 },
-  staminaLow: { backgroundColor: '#FF4422' },
+  staminaLow:  { backgroundColor: '#FF4422' },
 
-  // Controls
+  /* Controls */
   controls: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 12, paddingBottom: 8, gap: 8,
+    paddingHorizontal: 12, paddingBottom: 8,
   },
-  skillsLeft: { gap: 8, width: 66 },
-  skillsRight: { gap: 8, width: 66 },
+  skillsLeft:  { gap: 8, width: 70 },
+  skillsRight: { gap: 8, width: 70 },
 
-  barkBtn: { width: 130, height: 130, borderRadius: 65, alignItems: 'center', justifyContent: 'center' },
-  barkBtnOff: { opacity: 0.45 },
+  barkBtn: { width: 136, height: 136, borderRadius: 68, alignItems: 'center', justifyContent: 'center' },
+  barkOff: { opacity: 0.4 },
   barkInner: {
-    width: 120, height: 120, borderRadius: 60,
+    width: 126, height: 126, borderRadius: 63,
     backgroundColor: '#CC2200', alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#FF4422', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 20,
-    elevation: 14,
-    borderWidth: 3, borderColor: 'rgba(255,120,80,0.5)',
+    shadowColor: '#FF4422', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.95, shadowRadius: 22, elevation: 15,
+    borderWidth: 3, borderColor: 'rgba(255,130,90,0.45)',
   },
-  barkPaw: { fontSize: 28 },
-  barkLabel: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: 1 },
-  barkSub: { color: 'rgba(255,255,200,0.8)', fontSize: 9, fontWeight: '600' },
+  barkPaw:   { fontSize: 30 },
+  barkLabel: { color: '#FFF', fontSize: 20, fontWeight: '900', letterSpacing: 1 },
+  barkSub:   { color: 'rgba(255,255,200,0.75)', fontSize: 9, fontWeight: '600' },
 
-  // Currency
+  /* Currency */
   currencyBar: {
     flexDirection: 'row', justifyContent: 'center', gap: 24,
-    backgroundColor: 'rgba(6,14,34,0.92)', paddingVertical: 6,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(6,14,34,0.94)', paddingVertical: 6,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
   },
   currencyText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
 });
