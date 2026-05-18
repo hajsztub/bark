@@ -1,0 +1,45 @@
+{
+  "dogs": [
+    {
+      "id": "samoyed",
+      "dogName": "Samoyed",
+      "rarity": "Epic",
+      "role": "Tank / Power",
+      "baseBarkPower": 80,
+      "baseStamina": 90,
+      "baseFocus": 50,
+      "maxLevel": 15,
+      "description": "Big, fluffy, strong. A great premium starter.",
+      "unlockType": "Default",
+      "availableSkins": ["samoyed_classic_blue", "samoyed_royal_fluff", "samoyed_snow_hero"]
+    },
+    {
+      "id": "shiba",
+      "dogName": "Shiba",
+      "rarity": "Epic",
+      "role": "Balanced / Agile",
+      "baseBarkPower": 70,
+      "baseStamina": 70,
+      "baseFocus": 70,
+      "maxLevel": 15,
+      "description": "Energetic, competitive. Great for PvP vibes.",
+      "unlockType": "Fragments",
+      "fragmentsRequired": 500,
+      "availableSkins": ["shiba_red_bandana", "shiba_samurai", "shiba_cyber"]
+    },
+    {
+      "id": "corgi",
+      "dogName": "Corgi",
+      "rarity": "Rare",
+      "role": "Fast / Cute",
+      "baseBarkPower": 50,
+      "baseStamina": 60,
+      "baseFocus": 90,
+      "maxLevel": 12,
+      "description": "Fast Perfect Bark detection, high charm factor.",
+      "unlockType": "Fragments",
+      "fragmentsRequired": 300,
+      "availableSkins": ["corgi_blue_bandana", "corgi_royal_crown", "corgi_party"]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "skills": [
+    {
+      "id": "howl",
+      "skillName": "HOWL",
+      "skillType": "Howl",
+      "cooldown": 10.0,
+      "effectValue": 1.8,
+      "duration": 2.0,
+      "description": "Powerful wave boost for a short time. Pushes opponent hard.",
+      "iconColor": "#4488FF",
+      "sfxId": "sfx_howl"
+    },
+    {
+      "id": "treat",
+      "skillName": "TREAT",
+      "skillType": "Treat",
+      "cooldown": 12.0,
+      "effectValue": 40.0,
+      "duration": 0.0,
+      "description": "Instantly recovers 40 stamina. Use after overheat.",
+      "iconColor": "#44BB44",
+      "sfxId": "sfx_treat"
+    },
+    {
+      "id": "shield",
+      "skillName": "SHIELD",
+      "skillType": "Shield",
+      "cooldown": 14.0,
+      "effectValue": 0.5,
+      "duration": 2.0,
+      "description": "Reduces damage and knockback by 50% for 2 seconds.",
+      "iconColor": "#9944DD",
+      "sfxId": "sfx_shield"
+    }
+  ]
+}

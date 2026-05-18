@@ -1,0 +1,94 @@
+{
+  "skins": [
+    {
+      "id": "samoyed_classic_blue",
+      "skinName": "Classic Blue Bandana",
+      "dogId": "samoyed",
+      "rarity": "Common",
+      "unlockType": "Default",
+      "unlockCost": 0,
+      "vfxColorOverride": "#4488FF",
+      "isDefault": true
+    },
+    {
+      "id": "samoyed_royal_fluff",
+      "skinName": "Royal Fluff",
+      "dogId": "samoyed",
+      "rarity": "Epic",
+      "unlockType": "Gems",
+      "unlockCost": 500,
+      "vfxColorOverride": "#FFD700",
+      "isDefault": false
+    },
+    {
+      "id": "samoyed_snow_hero",
+      "skinName": "Snow Hero",
+      "dogId": "samoyed",
+      "rarity": "Rare",
+      "unlockType": "Gems",
+      "unlockCost": 250,
+      "vfxColorOverride": "#88CCFF",
+      "isDefault": false
+    },
+    {
+      "id": "shiba_red_bandana",
+      "skinName": "Red Bandana",
+      "dogId": "shiba",
+      "rarity": "Common",
+      "unlockType": "Default",
+      "unlockCost": 0,
+      "vfxColorOverride": "#FF4422",
+      "isDefault": true
+    },
+    {
+      "id": "shiba_samurai",
+      "skinName": "Shiba Samurai",
+      "dogId": "shiba",
+      "rarity": "Epic",
+      "unlockType": "Gems",
+      "unlockCost": 500,
+      "vfxColorOverride": "#CC2200",
+      "isDefault": false
+    },
+    {
+      "id": "shiba_cyber",
+      "skinName": "Cyber Shiba",
+      "dogId": "shiba",
+      "rarity": "Rare",
+      "unlockType": "Gems",
+      "unlockCost": 250,
+      "vfxColorOverride": "#00FFAA",
+      "isDefault": false
+    },
+    {
+      "id": "corgi_blue_bandana",
+      "skinName": "Blue Bandana",
+      "dogId": "corgi",
+      "rarity": "Common",
+      "unlockType": "Default",
+      "unlockCost": 0,
+      "vfxColorOverride": "#4488FF",
+      "isDefault": true
+    },
+    {
+      "id": "corgi_royal_crown",
+      "skinName": "Royal Crown",
+      "dogId": "corgi",
+      "rarity": "Epic",
+      "unlockType": "Gems",
+      "unlockCost": 500,
+      "vfxColorOverride": "#FFD700",
+      "isDefault": false
+    },
+    {
+      "id": "corgi_party",
+      "skinName": "Party Corgi",
+      "dogId": "corgi",
+      "rarity": "Rare",
+      "unlockType": "Gems",
+      "unlockCost": 250,
+      "vfxColorOverride": "#FF88CC",
+      "isDefault": false
+    }
+  ]
+}

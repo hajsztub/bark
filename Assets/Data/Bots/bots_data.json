@@ -1,0 +1,59 @@
+{
+  "bots": [
+    {
+      "id": "bark_boss_easy",
+      "botName": "BarkBoss",
+      "avatarId": "shiba",
+      "difficulty": "Easy",
+      "reactionDelay": 1.2,
+      "aggression": 0.3,
+      "mistakeRate": 0.4,
+      "trophyRange": [0, 200],
+      "leagueName": "Bronze I"
+    },
+    {
+      "id": "shiba_challenger",
+      "botName": "ShibaChallenger",
+      "avatarId": "shiba",
+      "difficulty": "Medium",
+      "reactionDelay": 0.8,
+      "aggression": 0.6,
+      "mistakeRate": 0.25,
+      "trophyRange": [200, 600],
+      "leagueName": "Bronze III"
+    },
+    {
+      "id": "corgi_king",
+      "botName": "CorgiKing",
+      "avatarId": "corgi",
+      "difficulty": "Medium",
+      "reactionDelay": 0.7,
+      "aggression": 0.65,
+      "mistakeRate": 0.2,
+      "trophyRange": [400, 800],
+      "leagueName": "Silver I"
+    },
+    {
+      "id": "fluffy_rival",
+      "botName": "FluffyRival",
+      "avatarId": "samoyed",
+      "difficulty": "Hard",
+      "reactionDelay": 0.4,
+      "aggression": 0.85,
+      "mistakeRate": 0.1,
+      "trophyRange": [800, 1500],
+      "leagueName": "Gold II"
+    },
+    {
+      "id": "woof_master",
+      "botName": "WoofMaster",
+      "avatarId": "shiba",
+      "difficulty": "Hard",
+      "reactionDelay": 0.3,
+      "aggression": 0.9,
+      "mistakeRate": 0.05,
+      "trophyRange": [1200, 9999],
+      "leagueName": "Platinum I"
+    }
+  ]
+}

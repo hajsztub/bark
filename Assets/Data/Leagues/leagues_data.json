@@ -1,0 +1,15 @@
+{
+  "leagues": [
+    { "id": "bronze_1", "name": "Bronze I", "minTrophies": 0, "maxTrophies": 199, "tier": "Bronze", "level": 1 },
+    { "id": "bronze_2", "name": "Bronze II", "minTrophies": 200, "maxTrophies": 399, "tier": "Bronze", "level": 2 },
+    { "id": "bronze_3", "name": "Bronze III", "minTrophies": 400, "maxTrophies": 599, "tier": "Bronze", "level": 3 },
+    { "id": "silver_1", "name": "Silver I", "minTrophies": 600, "maxTrophies": 799, "tier": "Silver", "level": 1 },
+    { "id": "silver_2", "name": "Silver II", "minTrophies": 800, "maxTrophies": 999, "tier": "Silver", "level": 2 },
+    { "id": "silver_3", "name": "Silver III", "minTrophies": 1000, "maxTrophies": 1199, "tier": "Silver", "level": 3 },
+    { "id": "gold_1", "name": "Gold I", "minTrophies": 1200, "maxTrophies": 1499, "tier": "Gold", "level": 1 },
+    { "id": "gold_2", "name": "Gold II", "minTrophies": 1500, "maxTrophies": 1799, "tier": "Gold", "level": 2 },
+    { "id": "gold_3", "name": "Gold III", "minTrophies": 1800, "maxTrophies": 2099, "tier": "Gold", "level": 3 },
+    { "id": "platinum_1", "name": "Platinum I", "minTrophies": 2100, "maxTrophies": 2499, "tier": "Platinum", "level": 1 },
+    { "id": "diamond", "name": "Diamond", "minTrophies": 2500, "maxTrophies": 9999, "tier": "Diamond", "level": 1 }
+  ]
+}

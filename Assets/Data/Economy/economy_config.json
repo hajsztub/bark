@@ -1,0 +1,48 @@
+{
+  "rewards": {
+    "battleWinCoins": 1250,
+    "battleLoseCoins": 500,
+    "trophyWin": 20,
+    "trophyLose": -10,
+    "adMultiplier": 2.0,
+    "chestProgressPerWin": 1,
+    "chestProgressMax": 10,
+    "winGems": 50,
+    "loseGems": 10,
+    "winFragments": 10,
+    "loseFragments": 3
+  },
+  "upgradesCosts": {
+    "barkPowerLevelCost": [500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7500, 10000, 12500, 15000, 20000],
+    "staminaLevelCost": [400, 800, 1200, 1600, 2000, 2500, 3000, 4000, 5000, 6500, 8000, 10000, 12000, 15000],
+    "focusLevelCost": [600, 1100, 1600, 2100, 2600, 3200, 4200, 5200, 6500, 8000, 10500, 13000, 16000, 21000]
+  },
+  "dailyReward": {
+    "coins": 500,
+    "gems": 20,
+    "cooldownHours": 24
+  },
+  "chest": {
+    "openCostGems": 0,
+    "openCooldownHours": 3,
+    "freeOpenAvailable": true,
+    "rewardCoinsMin": 800,
+    "rewardCoinsMax": 2000,
+    "rewardGemsMin": 30,
+    "rewardGemsMax": 100
+  },
+  "interstitialConfig": {
+    "showAfterBattleCount": 3,
+    "neverShowInFirstBattle": true,
+    "neverShowDuringBattle": true
+  },
+  "iap": {
+    "removeAdsProductId": "com.barkbattle.dogduel.removeads",
+    "removeAdsPrice": 9.99,
+    "starterPackProductId": "com.barkbattle.dogduel.starterpack",
+    "starterPackPrice": 1.99,
+    "gemPackSmallId": "com.barkbattle.dogduel.gems_small",
+    "gemPackMediumId": "com.barkbattle.dogduel.gems_medium",
+    "gemPackLargeId": "com.barkbattle.dogduel.gems_large"
+  }
+}
