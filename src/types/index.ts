@@ -9,6 +9,14 @@ export interface DogStats {
   focus: number;     // 1-10
 }
 
+export interface DogImages {
+  idle: any;
+  bark: any;
+  hit: any;
+  victory: any;
+  defeat: any;
+}
+
 export interface Dog {
   id: string;
   name: string;
@@ -18,8 +26,9 @@ export interface Dog {
   stats: DogStats;
   maxLevel: number;
   fragmentsRequired: number;
-  emoji: string; // placeholder art
+  emoji: string; // fallback when no image
   color: string; // accent color
+  images?: DogImages;
 }
 
 export interface Skin {
