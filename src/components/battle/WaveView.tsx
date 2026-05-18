@@ -45,13 +45,10 @@ export default function WaveView({ wavePosition, playerCharging, chargeAmount, p
         <View style={styles.tugCenter} />
       </View>
 
-      {/* Clash glow in center of arena */}
+      {/* Clash spark — thin vertical line only, not a full glow oval */}
       <Animated.View
         pointerEvents="none"
-        style={[
-          styles.clashGlow,
-          { opacity: glowOpacity, shadowColor: chargeAmount > 0.5 ? '#FFF' : '#FFD700' },
-        ]}
+        style={[styles.clashSpark, { opacity: glowOpacity }]}
       />
     </View>
   );
@@ -72,13 +69,15 @@ const styles = StyleSheet.create({
     shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 6,
     elevation: 6,
   },
-  clashGlow: {
+  clashSpark: {
     position: 'absolute',
-    top: '20%', bottom: '10%',
-    left: '38%', right: '38%',
-    borderRadius: 60,
+    top: '25%', bottom: '15%',
+    left: '50%',
+    width: 4,
+    marginLeft: -2,
+    borderRadius: 2,
     backgroundColor: '#FFD700',
-    shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 40,
-    elevation: 10,
+    shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 12,
+    elevation: 8,
   },
 });

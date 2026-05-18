@@ -10,6 +10,7 @@ import WaveView from '../components/battle/WaveView';
 import DogSprite from '../components/DogSprite';
 
 const BATTLE_BG = require('../../assets/backgrounds/battle_arena.png');
+const DOG_SIZE  = 155;
 
 interface Props {
   onBattleEnd: (result: BattleEndResult) => void;
@@ -114,12 +115,7 @@ export default function BattleScreen({ onBattleEnd }: Props) {
         <View style={styles.dogsRow}>
           {/* Player side */}
           <View style={styles.dogSide}>
-            {state.isPlayerCharging && (
-              <View style={styles.woofBubble}>
-                <Text style={styles.woofText}>WOOF!</Text>
-              </View>
-            )}
-            <DogSprite dog={playerDog} variant={playerVariant} size={120} />
+            <DogSprite dog={playerDog} variant={playerVariant} size={DOG_SIZE} />
             {state.isPlayerOverheated && <Text style={styles.tiredText}>💨 TIRED</Text>}
           </View>
 
@@ -128,17 +124,19 @@ export default function BattleScreen({ onBattleEnd }: Props) {
             <Text style={styles.vsText}>VS</Text>
           </View>
 
-          {/* Bot side */}
+          {/* Bot side — samoyed mirrored */}
           <View style={[styles.dogSide, { alignItems: 'flex-end' }]}>
-            <View style={styles.wafBubble}>
-              <Text style={styles.wafText}>WAF!</Text>
-            </View>
-            {/* Bot dog mirrored */}
             <View style={{ transform: [{ scaleX: -1 }] }}>
-              <Text style={styles.botEmoji}>🦊</Text>
+              <DogSprite dog={playerDog} variant="idle" size={DOG_SIZE} />
             </View>
           </View>
         </View>
+
+        {/* Speech bubbles float over arena */}
+        {state.isPlayerCharging && (
+          <View style={styles.woofBubble}><Text style={styles.woofText}>WOOF!</Text></View>
+        )}
+        <View style={styles.wafBubble}><Text style={styles.wafText}>WAF!</Text></View>
       </View>
 
       {/* ── Stamina bar ── */}
@@ -227,8 +225,8 @@ const skillS = StyleSheet.create({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A1628', overflow: 'hidden' },
 
-  bgImage: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '110%' },
-  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(4,10,24,0.18)' },
+  bgImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(4,10,24,0.22)' },
 
   // HUD
   topHUD: {
@@ -268,30 +266,29 @@ const styles = StyleSheet.create({
   // Arena
   arena: { flex: 1, position: 'relative' },
   dogsRow: {
-    position: 'absolute', bottom: 8, left: 0, right: 0,
-    flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 8,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 0,
   },
   dogSide: { flex: 1, alignItems: 'flex-start', position: 'relative' },
-  vsCol: { width: 50, alignItems: 'center', paddingBottom: 20 },
-  vsText: { color: '#FFD700', fontSize: 24, fontWeight: '900', textShadowColor: '#000', textShadowRadius: 6 },
+  vsCol: { width: 44, alignItems: 'center', paddingBottom: 30 },
+  vsText: { color: '#FFD700', fontSize: 22, fontWeight: '900', textShadowColor: '#000', textShadowRadius: 6 },
 
-  // Speech bubbles
+  // Speech bubbles — absolute, float above dogs
   woofBubble: {
-    backgroundColor: '#1A55CC', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
-    marginBottom: 4,
-    shadowColor: '#4A9EFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 8,
-    elevation: 6,
+    position: 'absolute', bottom: DOG_SIZE - 10, left: 8,
+    backgroundColor: '#1166EE', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5,
+    shadowColor: '#4A9EFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 10,
+    elevation: 8, zIndex: 10,
   },
-  woofText: { color: '#FFF', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+  woofText: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: 1 },
   wafBubble: {
-    backgroundColor: '#AA2200', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
-    marginBottom: 4,
-    shadowColor: '#FF4422', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 8,
-    elevation: 6,
+    position: 'absolute', bottom: DOG_SIZE - 10, right: 8,
+    backgroundColor: '#BB2200', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5,
+    shadowColor: '#FF4422', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 10,
+    elevation: 8, zIndex: 10,
   },
-  wafText: { color: '#FFF', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+  wafText: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: 1 },
 
-  botEmoji: { fontSize: 90 },
   tiredText: { color: '#FF8800', fontWeight: '700', fontSize: 11 },
 
   // Stamina
