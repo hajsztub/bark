@@ -1,161 +1,277 @@
 import type { BotConfig, BattleEndResult, Dog } from '../../types';
 
-export const BATTLE_DURATION = 60;
-export const MAX_CONFIDENCE = 100;
-export const MAX_STAMINA = 100;
-export const STAMINA_REGEN = 18; // per second
-export const TAP_COST = 8;
-export const HOLD_COST_PER_S = 3;
-export const OVERHEAT_THRESHOLD = 95;
-export const OVERHEAT_COOLDOWN = 2;
-export const WAVE_BOUNDARY = 100;
-export const WAVE_DRIFT_SPEED = 2; // passive drift back to center per second
-export const WAVE_HIT_DAMAGE = 15;
+// ── Tuning constants ───────────────────────────────────────────────────────
+export const BATTLE_DURATION     = 45;
+export const MAX_HP              = 100;
+
+export const PULSE_CYCLE         = 2.0;  // seconds per timing ring loop
+export const PERFECT_START       = 0.70; // timing window: 70-88% of cycle
+export const PERFECT_END         = 0.88;
+
+export const GOOD_DAMAGE         = 7;
+export const PERFECT_DAMAGE      = 22;
+export const PARRY_COUNTER_DAMAGE= 18;   // damage dealt on successful parry
+export const BOT_DAMAGE          = 12;
+export const SUPER_DAMAGE        = 50;
+export const FURY_AUTO_DAMAGE    = 10;   // damage per auto-bark in fury
+
+export const SUPER_FILL_PERFECT  = 22;   // super meter points per perfect hit
+export const SUPER_FILL_GOOD     = 7;
+export const SUPER_COST          = 100;
+
+export const COMBO_FURY_THRESHOLD = 5;   // combo hits to enter FURY
+export const FURY_DURATION        = 2.5;
+export const FURY_BARK_INTERVAL   = 0.35; // auto-bark every 0.35s in fury
+
+export const PARRY_WINDOW         = 0.25; // last 25% of bot growl is parry window
+
+// ── State ─────────────────────────────────────────────────────────────────
+export type HitResult = 'perfect' | 'good' | 'parry' | 'block' | 'miss' | null;
 
 export interface BattleState {
-  timeRemaining: number;
-  playerConfidence: number;
-  botConfidence: number;
-  playerStamina: number;
-  botStamina: number;
-  wavePosition: number;       // -100 (player loses) to +100 (bot loses)
-  isPlayerCharging: boolean;
-  playerChargeAmount: number; // 0-1
-  isPlayerOverheated: boolean;
-  overheatTimer: number;
-  isShieldActive: boolean;
-  shieldTimer: number;
-  isHowlActive: boolean;
-  howlTimer: number;
-  skillCooldowns: Record<string, number>; // seconds remaining
-  botSkillCooldowns: Record<string, number>;
+  timeRemaining:   number;
+  playerHP:        number;
+  botHP:           number;
+
+  // Timing ring
+  pulsePhase:      number;  // 0→1 advances continuously
+
+  // Combo & super
+  playerCombo:     number;
+  superMeter:      number;  // 0-100
+
+  // Fury
+  isFuryMode:      boolean;
+  furyTimer:       number;
+  furyBarkTimer:   number;
+
+  // Bot growl telegraph
+  botGrowlProgress: number;  // 0→1, when 1.0 bot attacks and resets
+  botGrowlSpeed:    number;  // fills per second (set from bot config)
+
+  // Hit feedback (cleared after 0.5s)
+  lastHitResult:   HitResult;
+  hitResultTimer:  number;
+
+  // Shield skill
+  isShieldActive:  boolean;
+  shieldTimer:     number;
+  skillCooldowns:  Record<string, number>;
+
   active: boolean;
-  ended: boolean;
+  ended:  boolean;
 }
 
-export const createInitialState = (playerDog: Dog): BattleState => ({
-  timeRemaining: BATTLE_DURATION,
-  playerConfidence: MAX_CONFIDENCE,
-  botConfidence: MAX_CONFIDENCE,
-  playerStamina: MAX_STAMINA,
-  botStamina: playerDog.stats.stamina * 10,
-  wavePosition: 0,
-  isPlayerCharging: false,
-  playerChargeAmount: 0,
-  isPlayerOverheated: false,
-  overheatTimer: 0,
-  isShieldActive: false,
-  shieldTimer: 0,
-  isHowlActive: false,
-  howlTimer: 0,
-  skillCooldowns: { HOWL: 0, TREAT: 0, SHIELD: 0 },
-  botSkillCooldowns: { HOWL: 0, TREAT: 0, SHIELD: 0 },
-  active: false,
-  ended: false,
+export const createInitialState = (_playerDog: Dog, bot: BotConfig): BattleState => ({
+  timeRemaining:    BATTLE_DURATION,
+  playerHP:         MAX_HP,
+  botHP:            MAX_HP,
+  pulsePhase:       0,
+  playerCombo:      0,
+  superMeter:       0,
+  isFuryMode:       false,
+  furyTimer:        0,
+  furyBarkTimer:    0,
+  botGrowlProgress: 0,
+  botGrowlSpeed:    0.18 + bot.aggression * 0.24, // easy: ~0.2/s, hard: ~0.42/s
+  lastHitResult:    null,
+  hitResultTimer:   0,
+  isShieldActive:   false,
+  shieldTimer:      0,
+  skillCooldowns:   { SHIELD: 0, TREAT: 0 },
+  active:           false,
+  ended:            false,
 });
 
+// ── Tick ──────────────────────────────────────────────────────────────────
 export function tickBattle(
   state: BattleState,
   dt: number,
-  playerDog: Dog,
-  bot: BotConfig,
+  _playerDog: Dog,
+  _bot: BotConfig,
 ): Partial<BattleState> {
   if (!state.active || state.ended) return {};
 
-  const patch: Partial<BattleState> = {};
+  const p: Partial<BattleState> = {};
 
   // Timer
-  const newTime = Math.max(0, state.timeRemaining - dt);
-  patch.timeRemaining = newTime;
+  p.timeRemaining = Math.max(0, state.timeRemaining - dt);
 
-  // Stamina regen
-  const maxStamina = playerDog.stats.stamina * 10;
-  patch.playerStamina = Math.min(maxStamina, state.playerStamina + STAMINA_REGEN * dt);
-
-  // Overheat cooldown
-  if (state.isPlayerOverheated) {
-    const newOH = Math.max(0, state.overheatTimer - dt);
-    patch.overheatTimer = newOH;
-    if (newOH === 0) patch.isPlayerOverheated = false;
-  }
-
-  // Skill timers
-  const newHowlTimer = Math.max(0, state.howlTimer - dt);
-  const newShieldTimer = Math.max(0, state.shieldTimer - dt);
-  patch.howlTimer = newHowlTimer;
-  patch.shieldTimer = newShieldTimer;
-  if (newHowlTimer === 0 && state.isHowlActive) patch.isHowlActive = false;
-  if (newShieldTimer === 0 && state.isShieldActive) patch.isShieldActive = false;
+  // Pulse phase (timing ring)
+  p.pulsePhase = (state.pulsePhase + dt / PULSE_CYCLE) % 1;
 
   // Skill cooldowns
-  const newCD: Record<string, number> = {};
-  const newBotCD: Record<string, number> = {};
-  for (const k of ['HOWL', 'TREAT', 'SHIELD']) {
-    newCD[k] = Math.max(0, state.skillCooldowns[k] - dt);
-    newBotCD[k] = Math.max(0, state.botSkillCooldowns[k] - dt);
-  }
-  patch.skillCooldowns = newCD;
-  patch.botSkillCooldowns = newBotCD;
+  const cd: Record<string, number> = {};
+  for (const k of ['SHIELD', 'TREAT']) cd[k] = Math.max(0, state.skillCooldowns[k] - dt);
+  p.skillCooldowns = cd;
 
-  // Wave drift back to center
-  const drift = WAVE_DRIFT_SPEED * dt;
-  let newWave = state.wavePosition;
-  if (Math.abs(newWave) < drift) {
-    newWave = 0;
+  // Shield timer
+  if (state.isShieldActive) {
+    const t = Math.max(0, state.shieldTimer - dt);
+    p.shieldTimer = t;
+    if (t === 0) p.isShieldActive = false;
+  }
+
+  // Hit result flash
+  if (state.lastHitResult && state.hitResultTimer > 0) {
+    const t = Math.max(0, state.hitResultTimer - dt);
+    p.hitResultTimer = t;
+    if (t === 0) p.lastHitResult = null;
+  }
+
+  // Fury mode
+  let playerHP = state.playerHP;
+  let botHP    = state.botHP;
+
+  if (state.isFuryMode) {
+    const t = Math.max(0, state.furyTimer - dt);
+    p.furyTimer = t;
+    if (t === 0) { p.isFuryMode = false; p.furyBarkTimer = 0; }
+
+    // Auto-barks in fury
+    const newFuryBarkTimer = state.furyBarkTimer - dt;
+    if (newFuryBarkTimer <= 0) {
+      botHP = Math.max(0, botHP - FURY_AUTO_DAMAGE);
+      p.furyBarkTimer = FURY_BARK_INTERVAL;
+    } else {
+      p.furyBarkTimer = newFuryBarkTimer;
+    }
+  }
+
+  // Bot growl (telegraph)
+  const newGrowl = state.botGrowlProgress + state.botGrowlSpeed * dt;
+  if (newGrowl >= 1) {
+    // Bot attacks!
+    const dmg = state.isShieldActive ? 0 : BOT_DAMAGE;
+    playerHP = Math.max(0, playerHP - dmg);
+    p.botGrowlProgress = 0; // reset growl
+    if (state.isShieldActive) {
+      p.lastHitResult = 'block';
+      p.hitResultTimer = 0.6;
+    }
   } else {
-    newWave -= Math.sign(newWave) * drift;
+    p.botGrowlProgress = newGrowl;
   }
 
-  // Charge pushes wave
-  if (state.isPlayerCharging) {
-    const pushPower = 0.5 + state.playerChargeAmount * 2;
-    const howlMult = state.isHowlActive ? 1.8 : 1;
-    newWave += pushPower * howlMult * playerDog.stats.barkPower * 0.3 * dt;
-  }
-
-  // Check boundaries
-  let newPlayerConf = state.playerConfidence;
-  let newBotConf = state.botConfidence;
-
-  if (newWave >= WAVE_BOUNDARY) {
-    const dmg = WAVE_HIT_DAMAGE * (state.isShieldActive ? 0 : 1);
-    newBotConf = Math.max(0, state.botConfidence - dmg);
-    newWave = 0;
-    patch.botConfidence = newBotConf;
-  } else if (newWave <= -WAVE_BOUNDARY) {
-    const dmg = WAVE_HIT_DAMAGE * (state.isShieldActive ? 0.5 : 1);
-    newPlayerConf = Math.max(0, state.playerConfidence - dmg);
-    newWave = 0;
-    patch.playerConfidence = newPlayerConf;
-  }
-
-  patch.wavePosition = Math.max(-WAVE_BOUNDARY, Math.min(WAVE_BOUNDARY, newWave));
+  p.playerHP = playerHP;
+  p.botHP    = botHP;
 
   // End conditions
-  if (newPlayerConf <= 0 || newBotConf <= 0 || newTime === 0) {
-    patch.ended = true;
-    patch.active = false;
+  if (playerHP <= 0 || botHP <= 0 || p.timeRemaining === 0) {
+    p.ended = true;
+    p.active = false;
   }
 
-  return patch;
+  return p;
+}
+
+// ── Player actions ────────────────────────────────────────────────────────
+export function applyPlayerBark(state: BattleState): Partial<BattleState> {
+  const phase = state.pulsePhase;
+  const isPerfect = phase >= PERFECT_START && phase <= PERFECT_END;
+
+  // Parry: bark while bot is in final 25% of growl
+  const isParry = state.botGrowlProgress >= (1 - PARRY_WINDOW);
+
+  let botHP    = state.botHP;
+  let playerHP = state.playerHP;
+  let combo    = state.playerCombo;
+  let super_   = state.superMeter;
+  let fury     = state.isFuryMode;
+  let furyT    = state.furyTimer;
+  let furyBark = state.furyBarkTimer;
+  let hit: HitResult;
+
+  if (isParry) {
+    // Parry: interrupt bot attack, deal counter damage
+    botHP = Math.max(0, botHP - PARRY_COUNTER_DAMAGE);
+    combo += 1;
+    super_ = Math.min(SUPER_COST, super_ + SUPER_FILL_PERFECT);
+    hit = 'parry';
+  } else if (isPerfect) {
+    const multi = comboMultiplier(combo);
+    botHP = Math.max(0, botHP - PERFECT_DAMAGE * multi);
+    combo += 1;
+    super_ = Math.min(SUPER_COST, super_ + SUPER_FILL_PERFECT);
+    hit = 'perfect';
+  } else {
+    const multi = comboMultiplier(combo);
+    botHP = Math.max(0, botHP - GOOD_DAMAGE * multi);
+    combo += 1;
+    super_ = Math.min(SUPER_COST, super_ + SUPER_FILL_GOOD);
+    hit = 'good';
+  }
+
+  // Trigger FURY
+  if (!fury && combo >= COMBO_FURY_THRESHOLD) {
+    fury   = true;
+    furyT  = FURY_DURATION;
+    furyBark = 0;
+    combo  = 0;
+  }
+
+  return {
+    botHP, playerHP,
+    playerCombo: combo,
+    superMeter: super_,
+    isFuryMode: fury,
+    furyTimer: furyT,
+    furyBarkTimer: furyBark,
+    botGrowlProgress: isParry ? 0 : state.botGrowlProgress, // parry resets growl
+    lastHitResult: hit,
+    hitResultTimer: 0.7,
+  };
+}
+
+export function applySuper(state: BattleState): Partial<BattleState> {
+  if (state.superMeter < SUPER_COST) return {};
+  return {
+    botHP:       Math.max(0, state.botHP - SUPER_DAMAGE),
+    superMeter:  0,
+    lastHitResult: 'perfect',
+    hitResultTimer: 1.2,
+    playerCombo: 0,
+  };
+}
+
+export function applySkill(state: BattleState, skill: string, playerDog: Dog): Partial<BattleState> {
+  if (state.skillCooldowns[skill] > 0) return {};
+
+  if (skill === 'SHIELD') {
+    return {
+      isShieldActive: true,
+      shieldTimer: 3,
+      skillCooldowns: { ...state.skillCooldowns, SHIELD: 14 },
+    };
+  }
+  if (skill === 'TREAT') {
+    return {
+      playerHP: Math.min(MAX_HP, state.playerHP + 20),
+      skillCooldowns: { ...state.skillCooldowns, TREAT: 12 },
+    };
+  }
+  return {};
 }
 
 export function buildBattleResult(state: BattleState): BattleEndResult {
-  let result: BattleEndResult['result'];
-  if (state.playerConfidence > state.botConfidence) result = 'victory';
-  else if (state.botConfidence > state.playerConfidence) result = 'defeat';
-  else result = 'draw';
-
-  const won = result === 'victory';
+  const won = state.playerHP > state.botHP || state.botHP <= 0;
+  const draw = !won && state.playerHP === state.botHP;
+  const result = draw ? 'draw' : won ? 'victory' : 'defeat';
   return {
     result,
-    playerConfidence: state.playerConfidence,
-    botConfidence: state.botConfidence,
+    playerConfidence: state.playerHP,
+    botConfidence: state.botHP,
     duration: BATTLE_DURATION - state.timeRemaining,
-    coinsEarned: won ? 1250 : 500,
-    gemsEarned: won ? 50 : 10,
-    trophyDelta: won ? 20 : -10,
-    fragmentsEarned: won ? 10 : 3,
+    coinsEarned:      won ? 1250 : 500,
+    gemsEarned:       won ? 50 : 10,
+    trophyDelta:      won ? 20 : -10,
+    fragmentsEarned:  won ? 10 : 3,
     chestProgressAdded: won ? 0.1 : 0,
   };
+}
+
+function comboMultiplier(combo: number): number {
+  if (combo >= 4) return 2.0;
+  if (combo >= 2) return 1.5;
+  return 1.0;
 }
