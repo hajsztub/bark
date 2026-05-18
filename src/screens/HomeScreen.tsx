@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, View as SafeAreaView, Text, TouchableOpacity, StyleSheet,
-  StatusBar, ImageBackground, Dimensions,
+  StatusBar, Image, Dimensions,
 } from 'react-native';
 import { useSaveStore } from '../store/saveStore';
 import { getDog } from '../data/dogs';
@@ -33,7 +33,9 @@ export default function HomeScreen({ onPlay, onDogs, onShop }: Props) {
   };
 
   return (
-    <ImageBackground source={HOME_BG} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
+      {/* Image anchored to bottom — hides sky, shows park */}
+      <Image source={HOME_BG} style={styles.bgImage} resizeMode="cover" />
       <View style={styles.overlay} />
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" />
@@ -142,14 +144,22 @@ export default function HomeScreen({ onPlay, onDogs, onShop }: Props) {
           ))}
         </View>
       </SafeAreaView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const GLASS = 'rgba(6, 14, 34, 0.82)';
 
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
+  bg: { flex: 1, overflow: 'hidden' },
+  // Anchor image to bottom so park/arch is visible, sky is cropped at top
+  bgImage: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '110%',
+  },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(4, 10, 24, 0.28)' },
   container: { flex: 1 },
 
