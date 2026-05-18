@@ -6,9 +6,7 @@ import {
 import { useSaveStore } from '../store/saveStore';
 import { getDog } from '../data/dogs';
 
-// Drop assets/backgrounds/home_bg.png into the repo, then replace null with:
-// require('../../assets/backgrounds/home_bg.png')
-const HOME_BG: any = null;
+const HOME_BG = require('../../assets/backgrounds/home_bg.png');
 
 interface Props {
   onPlay: () => void;
