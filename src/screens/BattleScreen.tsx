@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, Pressable,
+  View, View as SafeAreaView, Text, StyleSheet, Pressable,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBattle } from '../game/battle/useBattle';
 import { useSaveStore } from '../store/saveStore';
 import type { BattleEndResult } from '../types';
 import { WAVE_BOUNDARY } from '../game/battle/BattleEngine';
-import WaveCanvas from '../components/battle/WaveCanvas';
+import WaveView from '../components/battle/WaveView';
 
 interface Props {
   onBattleEnd: (result: BattleEndResult) => void;
@@ -104,7 +103,7 @@ export default function BattleScreen({ onBattleEnd }: Props) {
 
       {/* Arena */}
       <View style={styles.arena}>
-        <WaveCanvas
+        <WaveView
           wavePosition={state.wavePosition}
           playerCharging={state.isPlayerCharging}
           chargeAmount={state.playerChargeAmount}

@@ -1,9 +1,8 @@
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView,
+  View, View as SafeAreaView, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSaveStore } from '../store/saveStore';
 import { getDog } from '../data/dogs';
 import { COLORS, FONTS } from '../utils/theme';

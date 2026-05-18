@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView,
+  View, View as SafeAreaView, Text, TouchableOpacity, StyleSheet, ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { DOGS } from '../data/dogs';
 import { useSaveStore } from '../store/saveStore';
 import type { Dog } from '../types';
