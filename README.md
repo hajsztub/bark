@@ -1,83 +1,60 @@
 # Bark Battle: Dog Duel
 
-A casual mobile battler where cute dogs compete in barking duels. Portrait 9:16, Android first.
+Mobile casual battle game — cute dogs compete in barking duels. React Native + Expo.
 
 ## Tech Stack
 
-- **Engine**: Unity 2022.3 LTS (2D)
-- **Platform**: Android (primary), iOS (after validation)
-- **Target SDK**: Android 23+ / iOS 12+
-- **Orientation**: Portrait only (9:16)
+- **Framework**: Expo SDK 54 + React Native (New Architecture)
+- **Language**: TypeScript
+- **Rendering**: @shopify/react-native-skia (wave canvas)
+- **Gestures**: react-native-gesture-handler
+- **State**: Zustand + AsyncStorage
+- **Platform**: Android (primary), iOS
 
 ## Quick Start
 
-1. Open in Unity Hub using Unity 2022.3.20f1
-2. Load scene `Assets/Scenes/Home.unity`
-3. Press Play
+```bash
+npm install
+npx expo start
+# Scan QR with Expo Go app, or press 'a' for Android emulator
+```
 
 ## Project Structure
 
 ```
-Assets/
-├── Scripts/
-│   ├── Battle/         # BattleController, BarkSystem, StaminaSystem, WaveSystem, VFXManager
-│   ├── Skills/         # SkillController, SkillConfig (ScriptableObject)
-│   ├── Dogs/           # DogConfig, SkinConfig (ScriptableObjects)
-│   ├── Bot/            # BotController, BotConfig (ScriptableObject)
-│   ├── Economy/        # EconomyManager, RewardConfig
-│   ├── Save/           # SaveManager, PlayerSaveData
-│   ├── UI/             # HomeScreen, DogCollectionScreen, BattleHUD, RewardScreen
-│   ├── Analytics/      # AnalyticsManager
-│   ├── Ads/            # AdManager (placeholder)
-│   └── Core/           # GameManager, AudioManager
-├── Data/
-│   ├── Dogs/           # dogs_data.json
-│   ├── Skills/         # skills_data.json
-│   ├── Bots/           # bots_data.json
-│   ├── Economy/        # economy_config.json
-│   ├── Leagues/        # leagues_data.json
-│   └── Skins/          # skins_data.json
-├── Scenes/             # Home, Battle, DogCollection
-├── Sprites/            # Dogs, UI, VFX (art assets)
-├── Audio/              # SFX, Music
-├── VFX/                # Particle prefabs
-└── Prefabs/            # UI, Battle, Dogs
+src/
+├── types/          # Shared TypeScript types
+├── data/           # Static game data (dogs, skills, bots)
+├── store/          # Zustand save store (AsyncStorage)
+├── game/
+│   ├── battle/     # BattleEngine.ts (pure logic), useBattle.ts (hook)
+│   └── bot/        # useBotAI.ts (AI with reaction delay + skill logic)
+├── screens/        # HomeScreen, BattleScreen, RewardScreen, DogsScreen
+├── components/
+│   └── battle/     # WaveCanvas (Skia), SkillButton
+└── utils/          # theme.ts
+App.tsx             # Root navigator (simple state machine)
 ```
 
 ## Core Gameplay
 
-- **BARK**: Tap (weak) / Hold+Release (charged) — main attack
-- **HOWL**: Power boost for 2s (10s cooldown)
+- **BARK**: Press & hold to charge, release to fire wave
+- **HOWL**: Power ×1.8 for 2s (10s cooldown)
 - **TREAT**: +40 Stamina instantly (12s cooldown)
-- **SHIELD**: 50% damage reduction for 2s (14s cooldown)
-- Win by reducing opponent Confidence to 0, or having more Confidence when timer ends
+- **SHIELD**: −50% damage for 2s (14s cooldown)
+- **Win**: Push confidence to 0, or have more confidence when 60s timer ends
 
-## MVP Dogs
+## Dogs (MVP)
 
-| Dog | Role | Bark Power | Stamina | Focus |
-|-----|------|-----------|---------|-------|
-| Samoyed | Tank/Power | 8/10 | 9/10 | 5/10 |
-| Shiba | Balanced | 7/10 | 7/10 | 7/10 |
-| Corgi | Fast/Cute | 5/10 | 6/10 | 9/10 |
+| Dog | Role | Bark | Stamina | Focus |
+|-----|------|------|---------|-------|
+| Samoyed | Tank/Power | 8 | 9 | 5 |
+| Shiba | Balanced | 7 | 7 | 7 |
+| Corgi | Fast/Cute | 5 | 6 | 9 |
 
-## Production Roadmap
+## Build for Android
 
-| Sprint | Scope |
-|--------|-------|
-| Sprint 1 | Battle engine, 1 dog vs bot, BARK/stamina/confidence/timer |
-| Sprint 2 | 3 dogs, 3 skills, bot difficulty, VFX, SFX placeholder |
-| Sprint 3 | Home, Dog Collection, upgrades, rewards, local save |
-| Sprint 4 | Rewarded ads, interstitial, shop placeholder/IAP |
-| Sprint 5 | Tutorial, balancing, analytics, Android AAB build |
-
-## Analytics Events
-
-All events defined in `AnalyticsManager.cs`:
-`tutorial_start`, `tutorial_complete`, `battle_start`, `battle_end`, `reward_claim`,
-`ad_offer_show`, `ad_start`, `ad_complete`, `interstitial_show`, `upgrade`, `skin_equip`, `shop_open`
-
-## Monetization
-
-- **Rewarded Ads**: x2 rewards after battle (most important placement)
-- **Interstitial**: After every 3 battles (never first battle, never mid-battle)
-- **IAP**: Remove Ads (9.99 PLN), Starter Pack with Royal Fluff Samoyed ($1.99), Gem Packs
+```bash
+npx expo run:android      # local build
+npx eas build -p android  # cloud build (EAS)
+```
