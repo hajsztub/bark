@@ -1,140 +1,84 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
-
-const W = Dimensions.get('window').width;
+import { View, StyleSheet, Animated } from 'react-native';
 
 interface Props {
-  wavePosition: number;   // -100 to +100  (positive = player winning)
+  wavePosition: number;   // -100 to +100
   playerCharging: boolean;
-  chargeAmount: number;   // 0-1
+  chargeAmount: number;
   playerColor: string;
 }
 
+// Tug-of-war bar + clash glow — no longer a full-screen color split
 export default function WaveView({ wavePosition, playerCharging, chargeAmount, playerColor }: Props) {
   const splitAnim = useRef(new Animated.Value(0.5)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim  = useRef(new Animated.Value(0)).current;
   const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
-  // Move split point based on wave position
   useEffect(() => {
     const target = 0.5 + (wavePosition / 100) * 0.35;
-    Animated.spring(splitAnim, {
-      toValue: target,
-      damping: 14,
-      stiffness: 180,
-      useNativeDriver: false,
-    }).start();
+    Animated.spring(splitAnim, { toValue: target, damping: 14, stiffness: 180, useNativeDriver: false }).start();
   }, [wavePosition]);
 
-  // Pulse the clash line while charging
   useEffect(() => {
     if (playerCharging) {
       pulseLoop.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.3 + chargeAmount * 0.4, duration: 200, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 1, duration: 250, useNativeDriver: false }),
+          Animated.timing(glowAnim, { toValue: 0.4, duration: 250, useNativeDriver: false }),
         ])
       );
       pulseLoop.current.start();
     } else {
       pulseLoop.current?.stop();
-      Animated.timing(pulseAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+      Animated.timing(glowAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start();
     }
-  }, [playerCharging, chargeAmount]);
+  }, [playerCharging]);
 
-  const playerWidth = splitAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
-
-  const clashGlow = chargeAmount > 0.5 ? '#FFFFFF' : '#FFD700';
+  const tugFill = splitAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+  const glowOpacity = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.6 + chargeAmount * 0.3] });
 
   return (
     <View style={styles.container}>
-      {/* Player wave (left, blue) */}
-      <Animated.View style={[styles.playerWave, { width: playerWidth, backgroundColor: playerColor + 'CC' }]}>
-        {/* Wave edge effect */}
-        <View style={[styles.waveEdge, { backgroundColor: playerColor }]} />
-      </Animated.View>
-
-      {/* Bot wave (right, orange/red) — fills remaining space */}
-      <View style={[styles.botWave, { backgroundColor: '#FF442299' }]}>
-        <View style={styles.waveEdgeRight} />
+      {/* Tug-of-war bar */}
+      <View style={styles.tugTrack}>
+        <Animated.View style={[styles.tugFill, { width: tugFill, backgroundColor: playerColor }]} />
+        <View style={styles.tugCenter} />
       </View>
 
-      {/* Clash point */}
+      {/* Clash glow in center of arena */}
       <Animated.View
+        pointerEvents="none"
         style={[
-          styles.clashPoint,
-          {
-            left: playerWidth,
-            transform: [{ scaleY: pulseAnim }],
-            backgroundColor: clashGlow,
-            shadowColor: clashGlow,
-          },
+          styles.clashGlow,
+          { opacity: glowOpacity, shadowColor: chargeAmount > 0.5 ? '#FFF' : '#FFD700' },
         ]}
       />
-
-      {/* Sound wave lines on player side */}
-      {playerCharging && (
-        <View style={styles.chargeLines}>
-          {[0, 1, 2].map(i => (
-            <Animated.View
-              key={i}
-              style={[
-                styles.chargeLine,
-                {
-                  opacity: chargeAmount * 0.8,
-                  transform: [{ scaleX: 0.5 + chargeAmount * 0.5 + i * 0.15 }],
-                  backgroundColor: playerColor,
-                  top: 30 + i * 20,
-                },
-              ]}
-            />
-          ))}
-        </View>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    flexDirection: 'row', overflow: 'hidden',
+  container: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  tugTrack: {
+    position: 'absolute', top: 0, left: 0, right: 0,
+    height: 6, backgroundColor: 'rgba(255,68,34,0.6)', flexDirection: 'row',
   },
-  playerWave: {
-    height: '100%',
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
+  tugFill: { height: '100%' },
+  tugCenter: {
+    position: 'absolute', left: '50%', top: -3,
+    width: 12, height: 12, borderRadius: 6,
+    backgroundColor: '#FFD700',
+    marginLeft: -6,
+    shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 6,
+    elevation: 6,
   },
-  waveEdge: {
-    position: 'absolute', right: 0, top: '15%', bottom: '15%',
-    width: 4, borderRadius: 2,
-    opacity: 0.9,
-  },
-  botWave: {
-    flex: 1, height: '100%',
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
-  },
-  waveEdgeRight: {
-    position: 'absolute', left: 0, top: '15%', bottom: '15%',
-    width: 4, borderRadius: 2, backgroundColor: '#FF4422', opacity: 0.9,
-  },
-  clashPoint: {
-    position: 'absolute', top: '10%', bottom: '10%',
-    width: 3, borderRadius: 2, marginLeft: -1.5,
-    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 8,
-    elevation: 8,
-  },
-  chargeLines: {
-    position: 'absolute', left: '10%', top: 0, bottom: 0,
-  },
-  chargeLine: {
-    position: 'absolute', left: 0,
-    height: 2, width: 40, borderRadius: 1,
+  clashGlow: {
+    position: 'absolute',
+    top: '20%', bottom: '10%',
+    left: '38%', right: '38%',
+    borderRadius: 60,
+    backgroundColor: '#FFD700',
+    shadowColor: '#FFD700', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 40,
+    elevation: 10,
   },
 });
